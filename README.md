@@ -11,6 +11,8 @@ Cocos2d-x 3.xで2Dゲーム作る時に一部MikanUIで使うためのラッパ�
 
 完全に私用なので破壊的変更諸々あり。
 
+CocosとMikanのいいとこ取りしたい。
+
 ## 使い方
 
 * ClassesにCitrus.hをコピー
