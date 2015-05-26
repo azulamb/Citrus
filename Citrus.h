@@ -4,6 +4,7 @@
 #define CITRUS_VER "0.0.1"
 
 #include "cocos2d.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 #define CitrusObject class Citrus *citrus;
