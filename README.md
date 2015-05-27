@@ -47,6 +47,24 @@ bool AppDelegate::applicationDidFinishLaunching() {
     ...
 }
 
+... 
+
+void AppDelegate::applicationDidEnterBackground() {
+    Director::getInstance()->stopAnimation();
+
+    ...
+
+	citrus->pauseSound();
+}
+
+void AppDelegate::applicationWillEnterForeground() {
+    Director::getInstance()->startAnimation();
+
+    ...
+
+	citrus->resumeSound();
+}
+
 ...
 ````
 

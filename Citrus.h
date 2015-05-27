@@ -1,9 +1,10 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.1"
+#define CITRUS_VER "0.0.2"
 
 #include "cocos2d.h"
+#include <SimpleAudioEngine.h>
 
 #define CitrusObject class Citrus *citrus;
 #define CitrusInit() { citrus = new Citrus(); }
@@ -41,15 +42,15 @@ public:
 		this->scene = scene;
 	}
 	virtual void update(){}
-	virtual int getX()
+	virtual int getX( int n = 0 )
 	{
 		return 0;
 	}
-	virtual int getY()
+	virtual int getY( int n = 0 )
 	{
 		return 0;
 	}
-	virtual int getFrame()
+	virtual int getFrame( int n = 0 )
 	{
 		return 0;
 	}
@@ -116,15 +117,15 @@ public:
 			frame = 0;
 		}
 	}
-	virtual int getX()
+	virtual int getX( int n = 0 )
 	{
 		return x;
 	}
-	virtual int getY()
+	virtual int getY( int n = 0 )
 	{
 		return y;
 	}
-	virtual int getFrame()
+	virtual int getFrame( int n = 0 )
 	{
 		return frame;
 	}
@@ -138,6 +139,8 @@ private:
 	SpriteBatchNode **sprites;
 	unsigned int texmax;
 	class CitrusInput *input;
+	unsigned int soundmax;
+	char **sound;
 public:
 	Citrus()
 	{
@@ -147,11 +150,22 @@ public:
 		texmax = 4;
 		sprites = (SpriteBatchNode **)calloc( texmax, sizeof( SpriteBatchNode * ) );
 		input = new CitrusInputTap();
+		soundmax = 5;
+		sound = (char**)calloc( soundmax, sizeof( char* ) );
+		CocosDenshion::SimpleAudioEngine::getInstance()->setBackgroundMusicVolume( 1.0f );
 	}
 
 	virtual ~Citrus()
 	{
 		free( sprites );
+		for ( ; 0 < soundmax; --soundmax )
+		{
+			if ( sound[ soundmax - 1 ] )
+			{
+				free( sound[ soundmax - 1 ] );
+			}
+		}
+		free( sound );
 	}
 
 	virtual void initInput( Scene *scene )
@@ -212,20 +226,82 @@ public:
 		next = gv;
 	}
 
-	// Inout
-	virtual int getX()
+	virtual void setScreenSize( int width, int height )
 	{
-		return input->getX();
-	}
-	virtual int getY()
-	{
-		return input->getY();
-	}
-	virtual int getFrame()
-	{
-		return input->getFrame();
+		Director *director = Director::getInstance();
+		GLView *glview = director->getOpenGLView();
+		glview->setDesignResolutionSize( width, height, kResolutionShowAll );
 	}
 
+	// Inout
+	virtual int getX( int n = 0 )
+	{
+		return input->getX( n );
+	}
+	virtual int getY( int n = 0 )
+	{
+		return input->getY( n );
+	}
+	virtual int getFrame( int n = 0 )
+	{
+		return input->getFrame( n );
+	}
+
+	// Music
+
+	virtual void loadSound( unsigned int snd, const char *file )
+	{
+		if (soundmax <= snd )
+		{
+			return;
+		}
+		if ( sound[ snd ] )
+		{
+			releaseSound( snd );
+		}
+		sound[ snd ] = (char *)calloc(strlen(file)+1,sizeof(char));
+		strcpy(sound[snd],file);
+		CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic( file );
+	}
+
+	virtual void releaseSound( unsigned int snd )
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		free( sound[ snd ] );
+		sound[ snd ] = NULL;
+	}
+
+	virtual void playSound(unsigned int snd, bool loop = false)
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		CocosDenshion::SimpleAudioEngine::getInstance()->playBackgroundMusic( sound[ snd ], loop );
+	}
+
+	virtual void stopSound( unsigned int snd )
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		CocosDenshion::SimpleAudioEngine::getInstance()->stopBackgroundMusic( snd );
+	}
+
+	virtual void pauseSound( void )
+	{
+		CocosDenshion::SimpleAudioEngine::getInstance()->pauseBackgroundMusic();
+	}
+
+	virtual void resumeSound( void )
+	{
+		CocosDenshion::SimpleAudioEngine::getInstance()->resumeBackgroundMusic();
+	}
+	
 	// Draw
 
 	virtual void resizeTexture( unsigned int max )
@@ -248,11 +324,16 @@ public:
 			releaseTexture( tex );
 		}
 		sprites[ tex ] = SpriteBatchNode::create( file );
+		sprites[ tex ]->getTexture()->setAliasTexParameters();
 		scene->addChild( sprites[ tex ] );
 	}
 
 	virtual void releaseTexture( unsigned int tex )
 	{
+		if ( texmax <= tex )
+		{
+			return;
+		}
 		sprites[ tex ] = NULL;
 		scene->removeChild( sprites[ tex ] );
 		sprites[ tex ] = NULL;
