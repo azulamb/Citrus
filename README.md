@@ -23,7 +23,7 @@ Cocos2d-x 3.xで2Dゲーム作る時に一部MikanUIで使うためのラッパ�
 CitrusObject;
 
 AppDelegate::AppDelegate()　{
-　　　　CitrusInit( new GameView() );
+　　　　CitrusInit();
 }
 
 AppDelegate::~AppDelegate()　{
@@ -36,8 +36,8 @@ bool AppDelegate::applicationDidFinishLaunching() {
 
     ...
 
-    // create a scene. it's an autorelease object
-	auto scene = citrus->createScene();//HelloWorld::createScene();
+    // create a scene and GameView for Citrus.
+	auto scene = citrus->createScene( new GameView() );
 
     // run
     director->runWithScene(scene);
@@ -60,6 +60,7 @@ public:
 	}
 	virtual bool MainLoop()
 	{
+		citrus->clear();
 		citrus->drawTexture( 0, 0, 0, 50, 50, 10, 10 );
 
 		citrus->drawTexture( 0, 0, 0, 50, 50, 100, 100 );

@@ -4,11 +4,9 @@
 #define CITRUS_VER "0.0.1"
 
 #include "cocos2d.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 #define CitrusObject class Citrus *citrus;
-#define CitrusInit(v) { citrus = new Citrus( v ); }
+#define CitrusInit() { citrus = new Citrus(); }
 #define CitrusTerm() { delete( citrus ); citrus = NULL; }
 
 extern class Citrus *citrus;
@@ -31,27 +29,32 @@ public:
 class Citrus
 {
 private:
+	Scene *scene;
 	class CitrusGameView *now, *next;
-	Texture2D **texs;
+	class SpriteBatchNode **sprites;
 	unsigned int texmax;
 public:
-	Citrus( class CitrusGameView *gv )
+	Citrus()
 	{
 		now = NULL;
-		next = gv;
+		next = NULL;
+		scene = NULL;
 		texmax = 10;
-		texs = (Texture2D **)calloc( texmax, sizeof( Texture2D * ) );
+		sprites = (SpriteBatchNode **)calloc( texmax, sizeof( SpriteBatchNode * ) );
 	}
 
 	virtual ~Citrus()
 	{
+		free( sprites );
 	}
 
-	virtual Scene * createScene()
+	virtual Scene * createScene( class CitrusGameView *gv )
 	{
-		Scene *scene = Scene::create();
+		scene = Scene::create();
 
-		scene->addChild( next );
+		now = gv;
+		scene->addChild( gv );
+		gv->UserInit();
 
 		return scene;
 	}
@@ -63,13 +66,13 @@ public:
 			if ( now )
 			{
 				now->CleanUp();
+				scene->removeChild( now );
 			}
-			//delete( now );
 			now = next;
 			next = NULL;
+			scene->addChild( now );
 			now->UserInit();
 		}
-
 		if ( now->MainLoop() )
 		{
 			return false;
@@ -78,46 +81,65 @@ public:
 		return true;
 	}
 
-	void resizeTexture( unsigned int max )
+	virtual void setNextGameView( class CitrusGameView *gv )
 	{
-		texs = (Texture2D **)realloc( texs, sizeof( Texture2D * ) * max );
+		if ( next )
+		{
+			next->release();
+		}
+		next = gv;
+	}
+
+	virtual void resizeTexture( unsigned int max )
+	{
+		sprites = (SpriteBatchNode **)realloc( sprites, sizeof( SpriteBatchNode * ) * max );
 		for ( ; texmax < max; ++texmax )
 		{
-			texs[ texmax ] = NULL;
+			sprites[ texmax ] = NULL;
 		}
 	}
-	void createTexture( unsigned int tex, const char *file )
+	virtual void createTexture( unsigned int tex, const char *file )
 	{
 		if ( texmax <= tex )
 		{
 			return;
 		}
-		if ( texs[ tex ] )
+		if ( sprites[ tex ] )
 		{
 			releaseTexture( tex );
 		}
-
-		texs[ tex ] = Director::getInstance()->getTextureCache()->addImage( file );
+		sprites[ tex ] = SpriteBatchNode::create( file );
+		scene->addChild( sprites[ tex ] );
 	}
-	void releaseTexture( unsigned int tex )
+	virtual void releaseTexture( unsigned int tex )
 	{
-		texs[ tex ]->release();
-		texs[ tex ] = NULL;
+		sprites[ tex ] = NULL;
+		scene->removeChild( sprites[ tex ] );
+		sprites[ tex ] = NULL;
 	}
 
-	void drawTexture( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
+	virtual void drawTexture( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
 	{
-		if ( texmax <= tex || texs[ tex ] == NULL )
+		if ( texmax <= tex || sprites[ tex ] == NULL )
 		{
 			return;
 		}
-		class Sprite *sprite = Sprite::createWithTexture( texs[ tex ] );
-		sprite->setPosition( dx, dy );
-		Rect rect;// = new Rect( rx, ry, w, h );
+		Rect rect;
 		rect.setRect( rx, ry, w, h );
-		//Rect::Rect( rx, ry, w, h );
-		sprite->setTextureRect( rect );//Rect::Rect( rx, ry, w, h )
-		now->addChild( sprite );
+		Sprite *sprite = Sprite::createWithTexture( sprites[ tex ]->getTexture() );
+		sprite->setTextureRect( rect );
+		sprite->setPosition( dx, dy );
+		sprites[ tex ]->addChild( sprite );
+	}
+	virtual void clear()
+	{
+		for ( int i = 0; i < texmax; ++i )
+		{
+			if ( sprites[ i ] )
+			{
+				sprites[ i ]->removeAllChildren();
+			}
+		}
 	}
 };
 
