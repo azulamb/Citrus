@@ -26,21 +26,127 @@ public:
 	virtual void CleanUp(){}
 };
 
+class CitrusInput
+{
+protected:
+	Scene *scene;
+public:
+	CitrusInput()
+	{
+		scene = NULL;
+		setScene( NULL );
+	}
+	virtual void setScene( Scene *scene )
+	{
+		this->scene = scene;
+	}
+	virtual void update(){}
+	virtual int getX()
+	{
+		return 0;
+	}
+	virtual int getY()
+	{
+		return 0;
+	}
+	virtual int getFrame()
+	{
+		return 0;
+	}
+};
+
+class CitrusInputTap : public CitrusInput
+{
+private:
+	bool buf;
+	int frame, x, y;
+public:
+	CitrusInputTap() : CitrusInput()
+	{
+		buf = false;
+		frame = 0;
+		x = y = 0;
+	}
+
+	virtual void setScene( Scene *scene )
+	{
+		if ( scene == NULL )
+		{
+			this->scene = scene;
+			return;
+		}
+		auto listener = EventListenerTouchOneByOne::create();
+
+		listener->onTouchBegan = CC_CALLBACK_2( CitrusInputTap::onTouchBegan, this );
+		listener->onTouchMoved = CC_CALLBACK_2( CitrusInputTap::onTouchMoved, this );
+		listener->onTouchEnded = CC_CALLBACK_2( CitrusInputTap::onTouchEnded, this );
+
+		scene->getEventDispatcher()->addEventListenerWithSceneGraphPriority( listener, scene );
+	}
+
+	virtual bool onTouchBegan( Touch *touch, Event *event )
+	{
+		buf = true;
+		x = touch->getLocationInView().x;
+		y = touch->getLocationInView().y;
+		return true;
+	}
+
+	virtual void onTouchMoved( Touch *touch, Event *event )
+	{
+		x = touch->getLocationInView().x;
+		y = touch->getLocationInView().y;
+	}
+
+	virtual void onTouchEnded( Touch *touch, Event *event )
+	{
+		buf = false;
+	}
+
+	virtual void update()
+	{
+		if ( buf )
+		{
+			++frame;
+		} else if ( 0 < frame )
+		{
+			frame = -1;
+		} else
+		{
+			frame = 0;
+		}
+	}
+	virtual int getX()
+	{
+		return x;
+	}
+	virtual int getY()
+	{
+		return y;
+	}
+	virtual int getFrame()
+	{
+		return frame;
+	}
+};
+
 class Citrus
 {
 private:
 	Scene *scene;
 	class CitrusGameView *now, *next;
-	class SpriteBatchNode **sprites;
+	SpriteBatchNode **sprites;
 	unsigned int texmax;
+	class CitrusInput *input;
 public:
 	Citrus()
 	{
 		now = NULL;
 		next = NULL;
 		scene = NULL;
-		texmax = 10;
+		texmax = 4;
 		sprites = (SpriteBatchNode **)calloc( texmax, sizeof( SpriteBatchNode * ) );
+		input = new CitrusInputTap();
 	}
 
 	virtual ~Citrus()
@@ -48,15 +154,28 @@ public:
 		free( sprites );
 	}
 
+	virtual void initInput( Scene *scene )
+	{
+		input->setScene( scene );
+	}
+
+	// System
+
 	virtual Scene * createScene( class CitrusGameView *gv )
 	{
-		scene = Scene::create();
+		setScene( Scene::create() );
 
 		now = gv;
 		scene->addChild( gv );
 		gv->UserInit();
 
 		return scene;
+	}
+
+	virtual void setScene( Scene *s )
+	{
+		scene = s;
+		initInput( s );
 	}
 
 	virtual bool loop()
@@ -73,10 +192,13 @@ public:
 			scene->addChild( now );
 			now->UserInit();
 		}
-		if ( now->MainLoop() )
+
+		if ( now->MainLoop() == false )
 		{
 			return false;
 		}
+
+		input->update();
 
 		return true;
 	}
@@ -90,6 +212,22 @@ public:
 		next = gv;
 	}
 
+	// Inout
+	virtual int getX()
+	{
+		return input->getX();
+	}
+	virtual int getY()
+	{
+		return input->getY();
+	}
+	virtual int getFrame()
+	{
+		return input->getFrame();
+	}
+
+	// Draw
+
 	virtual void resizeTexture( unsigned int max )
 	{
 		sprites = (SpriteBatchNode **)realloc( sprites, sizeof( SpriteBatchNode * ) * max );
@@ -98,6 +236,7 @@ public:
 			sprites[ texmax ] = NULL;
 		}
 	}
+
 	virtual void createTexture( unsigned int tex, const char *file )
 	{
 		if ( texmax <= tex )
@@ -111,6 +250,7 @@ public:
 		sprites[ tex ] = SpriteBatchNode::create( file );
 		scene->addChild( sprites[ tex ] );
 	}
+
 	virtual void releaseTexture( unsigned int tex )
 	{
 		sprites[ tex ] = NULL;
@@ -128,12 +268,12 @@ public:
 		rect.setRect( rx, ry, w, h );
 		Sprite *sprite = Sprite::createWithTexture( sprites[ tex ]->getTexture() );
 		sprite->setTextureRect( rect );
-		sprite->setPosition( dx, dy );
+		sprite->setPosition( dx + w / 2, dy + h / 2 );
 		sprites[ tex ]->addChild( sprite );
 	}
 	virtual void clear()
 	{
-		for ( int i = 0; i < texmax; ++i )
+		for ( unsigned int i = 0; i < texmax; ++i )
 		{
 			if ( sprites[ i ] )
 			{
