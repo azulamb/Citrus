@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.3"
+#define CITRUS_VER "0.0.4"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -140,7 +140,29 @@ private:
 	unsigned int texmax;
 	class CitrusInput *input;
 	unsigned int soundmax;
-	char **sound;
+	char **bgm;
+	char **se;
+	int *seid;
+
+	char *ensureSoundFileName( const char *file )
+	{
+		int len = strlen( file );
+		char ext[ 5 ] = "";
+		if ( len < 4 || file[ len - 4 ] != '.' )
+		{
+			len += 4;
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+			strcpy( ext, ".caf" );
+#elif (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+			strcpy( ext, ".ogg" );
+#else
+			strcpy( ext, ".wav" );
+#endif
+		}
+		char *ret = (char *)calloc( len + 1, sizeof( char ) );
+		sprintf( ret, "%s%s", file, ext );
+		return ret;
+	}
 public:
 	Citrus()
 	{
@@ -151,7 +173,9 @@ public:
 		sprites = (SpriteBatchNode **)calloc( texmax, sizeof( SpriteBatchNode * ) );
 		input = new CitrusInputTap();
 		soundmax = 5;
-		sound = (char**)calloc( soundmax, sizeof( char* ) );
+		bgm = (char**)calloc( soundmax, sizeof( char* ) );
+		se = (char**)calloc( soundmax, sizeof( char* ) );
+		seid = (int*)calloc( soundmax, sizeof( int ) );
 		CocosDenshion::SimpleAudioEngine::getInstance()->setBackgroundMusicVolume( 1.0f );
 	}
 
@@ -160,12 +184,18 @@ public:
 		free( sprites );
 		for ( ; 0 < soundmax; --soundmax )
 		{
-			if ( sound[ soundmax - 1 ] )
+			if ( bgm[ soundmax - 1 ] )
 			{
-				free( sound[ soundmax - 1 ] );
+				free( bgm[ soundmax - 1 ] );
+			}
+			if ( se[ soundmax - 1 ] )
+			{
+				free( se[ soundmax - 1 ] );
 			}
 		}
-		free( sound );
+		free( bgm );
+		free( se );
+		free( seid );
 	}
 
 	virtual void initInput( Scene *scene )
@@ -247,62 +277,91 @@ public:
 		return input->getFrame( n );
 	}
 
-	// Music
+	// Sound
 
-	virtual void loadSound( unsigned int snd, const char *file )
+	virtual void loadBgm( unsigned int snd, const char *file )
 	{
 		if ( soundmax <= snd )
 		{
 			return;
 		}
-		if ( sound[ snd ] )
+		if ( bgm[ snd ] )
 		{
-			releaseSound( snd );
+			releaseBgm( snd );
 		}
-		int len = strlen( file );
-		char ext[ 5 ] = "";
-		if ( len < 4 || file[ len - 4 ] != '.' )
-		{
-			len += 4;
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-			strcpy( ext, ".caf" );
-#elif (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-			strcpy( ext, ".ogg" );
-#else
-			strcpy( ext, ".wav" );
-#endif
-		}
-		sound[ snd ] = (char *)calloc( len + 1, sizeof( char ) );
-		sprintf( sound[ snd ], "%s%s", file, ext );
-		CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic( sound[ snd ] );
+		bgm[ snd ] = ensureSoundFileName( file );
+		CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic( bgm[ snd ] );
 	}
 
-	virtual void releaseSound( unsigned int snd )
+	virtual void releaseBgm( unsigned int snd )
 	{
 		if ( soundmax <= snd )
 		{
 			return;
 		}
-		free( sound[ snd ] );
-		sound[ snd ] = NULL;
+		free( bgm[ snd ] );
+		bgm[ snd ] = NULL;
 	}
 
-	virtual void playSound( unsigned int snd, bool loop = false )
+	virtual void playBgm( unsigned int snd, bool loop = false )
 	{
 		if ( soundmax <= snd )
 		{
 			return;
 		}
-		CocosDenshion::SimpleAudioEngine::getInstance()->playBackgroundMusic( sound[ snd ], loop );
+		CocosDenshion::SimpleAudioEngine::getInstance()->playBackgroundMusic( bgm[ snd ], loop );
 	}
 
-	virtual void stopSound( unsigned int snd )
+	virtual void stopBgm( unsigned int snd )
 	{
 		if ( soundmax <= snd )
 		{
 			return;
 		}
-		CocosDenshion::SimpleAudioEngine::getInstance()->stopBackgroundMusic( snd );
+		CocosDenshion::SimpleAudioEngine::getInstance()->stopBackgroundMusic();
+	}
+
+	virtual void loadSe( unsigned int snd, const char *file )
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		if ( se[ snd ] )
+		{
+			releaseSe( snd );
+		}
+		se[ snd ] = ensureSoundFileName( file );
+		CocosDenshion::SimpleAudioEngine::getInstance()->preloadEffect( bgm[ snd ] );
+	}
+
+	virtual void releaseSe( unsigned int snd )
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		free( se[ snd ] );
+		seid[ snd ] = 0;
+		se[ snd ] = NULL;
+	}
+
+	virtual void playSe( unsigned int snd, bool loop = false )
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		seid[ snd ] = CocosDenshion::SimpleAudioEngine::getInstance()->playEffect( se[ snd ], loop );
+	}
+
+	virtual void stopSe( unsigned int snd )
+	{
+		if ( soundmax <= snd )
+		{
+			return;
+		}
+		CocosDenshion::SimpleAudioEngine::getInstance()->stopEffect( seid[ snd ] );
 	}
 
 	virtual void pauseSound( void )
@@ -352,6 +411,17 @@ public:
 		sprites[ tex ] = NULL;
 	}
 
+	virtual void clear()
+	{
+		for ( unsigned int i = 0; i < texmax; ++i )
+		{
+			if ( sprites[ i ] )
+			{
+				sprites[ i ]->removeAllChildren();
+			}
+		}
+	}
+
 	virtual void drawTexture( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
 	{
 		if ( texmax <= tex || sprites[ tex ] == NULL )
@@ -365,16 +435,7 @@ public:
 		sprite->setPosition( dx + w / 2, dy + h / 2 );
 		sprites[ tex ]->addChild( sprite );
 	}
-	virtual void clear()
-	{
-		for ( unsigned int i = 0; i < texmax; ++i )
-		{
-			if ( sprites[ i ] )
-			{
-				sprites[ i ]->removeAllChildren();
-			}
-		}
-	}
+
 };
 
 class GameView : public CitrusGameView{

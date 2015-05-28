@@ -101,8 +101,8 @@ MainLoopは毎フレーム呼ばれ、CocosのSpriteなども普通に使えま�
 virtual void UserInit()
 {
 	// ファイル名だけの場合、プラットフォームごとにbgm.oggとbgm.cafとbgm.wavを切り替える。
-	citrus->loadSound( 0,"bgm" );
-	citrus->playSound( 0, true );
+	citrus->loadBgm( 0,"bgm" );
+	citrus->playBgm( 0, true );
 }
 
 なおAndroidの無駄なファイルコピーは、以下の様な設定で回避できます。
