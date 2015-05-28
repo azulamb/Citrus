@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.2"
+#define CITRUS_VER "0.0.3"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -251,7 +251,7 @@ public:
 
 	virtual void loadSound( unsigned int snd, const char *file )
 	{
-		if (soundmax <= snd )
+		if ( soundmax <= snd )
 		{
 			return;
 		}
@@ -259,9 +259,22 @@ public:
 		{
 			releaseSound( snd );
 		}
-		sound[ snd ] = (char *)calloc(strlen(file)+1,sizeof(char));
-		strcpy(sound[snd],file);
-		CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic( file );
+		int len = strlen( file );
+		char ext[ 5 ] = "";
+		if ( len < 4 || file[ len - 4 ] != '.' )
+		{
+			len += 4;
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+			strcpy( ext, ".caf" );
+#elif (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+			strcpy( ext, ".ogg" );
+#else
+			strcpy( ext, ".wav" );
+#endif
+		}
+		sound[ snd ] = (char *)calloc( len + 1, sizeof( char ) );
+		sprintf( sound[ snd ], "%s%s", file, ext );
+		CocosDenshion::SimpleAudioEngine::getInstance()->preloadBackgroundMusic( sound[ snd ] );
 	}
 
 	virtual void releaseSound( unsigned int snd )
@@ -274,7 +287,7 @@ public:
 		sound[ snd ] = NULL;
 	}
 
-	virtual void playSound(unsigned int snd, bool loop = false)
+	virtual void playSound( unsigned int snd, bool loop = false )
 	{
 		if ( soundmax <= snd )
 		{
@@ -301,7 +314,7 @@ public:
 	{
 		CocosDenshion::SimpleAudioEngine::getInstance()->resumeBackgroundMusic();
 	}
-	
+
 	// Draw
 
 	virtual void resizeTexture( unsigned int max )

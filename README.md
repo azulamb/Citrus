@@ -90,3 +90,43 @@ public:
 ````
 
 MainLoopは毎フレーム呼ばれ、CocosのSpriteなども普通に使えます。
+
+## 音周り
+
+次のような想定で使う場合、Citrusで簡易振り分けができます。
+
+* Androidでogg、iOSでcaf、Winその他でwavと使い分ける。
+* 拡張子以外のファイル名は同じ
+
+virtual void UserInit()
+{
+	// ファイル名だけの場合、プラットフォームごとにbgm.oggとbgm.cafとbgm.wavを切り替える。
+	citrus->loadSound( 0,"bgm" );
+	citrus->playSound( 0, true );
+}
+
+なおAndroidの無駄なファイルコピーは、以下の様な設定で回避できます。
+
+* proj.android/build-cfg.json
+    * copy_resourcesにexcludeの設定を追加する。
+
+もしAndroidではogg以外再生しない場合は次のようにします。
+
+````json:proj.android/build-cfg.json
+{
+    "ndk_module_path" :[
+        "../cocos2d",
+        "../cocos2d/cocos",
+        "../cocos2d/external"
+    ],
+    "copy_resources": [
+        {
+            "from": "../Resources",
+            "to": "",
+            "exclude": [
+                "*.caf", "*.wav"
+            ]
+        }
+    ]
+}
+````
