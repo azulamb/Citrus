@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.4"
+#define CITRUS_VER "0.0.5"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -422,20 +422,62 @@ public:
 		}
 	}
 
+private:
+	virtual Sprite * prepareTexture( int tex, int rx, int ry, int w, int h )
+	{
+		Rect rect;
+		rect.setRect( rx, ry, w, h );
+		Sprite *sprite = Sprite::createWithTexture( sprites[ tex ]->getTexture() );
+		sprite->setTextureRect( rect );
+		return sprite;
+	}
+public:
 	virtual void drawTexture( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
 	{
 		if ( texmax <= tex || sprites[ tex ] == NULL )
 		{
 			return;
 		}
-		Rect rect;
-		rect.setRect( rx, ry, w, h );
-		Sprite *sprite = Sprite::createWithTexture( sprites[ tex ]->getTexture() );
-		sprite->setTextureRect( rect );
+		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
 		sprite->setPosition( dx + w / 2, dy + h / 2 );
+		//sprite->setAnchorPoint();
 		sprites[ tex ]->addChild( sprite );
 	}
 
+	virtual void drawTextureC( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
+	{
+		if ( texmax <= tex || sprites[ tex ] == NULL )
+		{
+			return;
+		}
+		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
+		sprite->setPosition( dx, dy );
+		sprites[ tex ]->addChild( sprite );
+	}
+
+	virtual void drawTextureScaling( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float scale )
+	{
+		if ( texmax <= tex || sprites[ tex ] == NULL )
+		{
+			return;
+		}
+		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
+		sprite->setScale( scale );
+		sprite->setPosition( dx - w * scale / 2, dy - h * scale / 2 );
+		sprites[ tex ]->addChild( sprite );
+	}
+
+	virtual void drawTextureScalingC( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float scale )
+	{
+		if ( texmax <= tex || sprites[ tex ] == NULL )
+		{
+			return;
+		}
+		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
+		sprite->setScale( scale );
+		sprite->setPosition( dx, dy );
+		sprites[ tex ]->addChild( sprite );
+	}
 };
 
 class GameView : public CitrusGameView{
