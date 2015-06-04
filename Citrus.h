@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.5"
+#define CITRUS_VER "0.0.6"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -142,27 +142,10 @@ private:
 	unsigned int soundmax;
 	char **bgm;
 	char **se;
+	float sevol;
 	int *seid;
+	unsigned char alpha;
 
-	char *ensureSoundFileName( const char *file )
-	{
-		int len = strlen( file );
-		char ext[ 5 ] = "";
-		if ( len < 4 || file[ len - 4 ] != '.' )
-		{
-			len += 4;
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-			strcpy( ext, ".caf" );
-#elif (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-			strcpy( ext, ".ogg" );
-#else
-			strcpy( ext, ".wav" );
-#endif
-		}
-		char *ret = (char *)calloc( len + 1, sizeof( char ) );
-		sprintf( ret, "%s%s", file, ext );
-		return ret;
-	}
 public:
 	Citrus()
 	{
@@ -176,6 +159,8 @@ public:
 		bgm = (char**)calloc( soundmax, sizeof( char* ) );
 		se = (char**)calloc( soundmax, sizeof( char* ) );
 		seid = (int*)calloc( soundmax, sizeof( int ) );
+		alpha = 255;
+		sevol = 1;
 		CocosDenshion::SimpleAudioEngine::getInstance()->setBackgroundMusicVolume( 1.0f );
 	}
 
@@ -278,6 +263,38 @@ public:
 	}
 
 	// Sound
+private:
+	char *ensureSoundFileName( const char *file )
+	{
+		int len = strlen( file );
+		char ext[ 5 ] = "";
+		if ( len < 4 || file[ len - 4 ] != '.' )
+		{
+			len += 4;
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+			strcpy( ext, ".caf" );
+#elif (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+			strcpy( ext, ".ogg" );
+#else
+			strcpy( ext, ".wav" );
+#endif
+		}
+		char *ret = (char *)calloc( len + 1, sizeof( char ) );
+		sprintf( ret, "%s%s", file, ext );
+		return ret;
+	}
+public:
+	virtual void setVolume( float vol )
+	{
+		CocosDenshion::SimpleAudioEngine::getInstance()->setBackgroundMusicVolume( vol );
+		CocosDenshion::SimpleAudioEngine::getInstance()->setEffectsVolume( vol );
+	}
+	virtual void setVolume( float bgm, float se )
+	{
+		CocosDenshion::SimpleAudioEngine::getInstance()->setBackgroundMusicVolume( bgm );
+		CocosDenshion::SimpleAudioEngine::getInstance()->setEffectsVolume( se );
+		sevol = se;
+	}
 
 	virtual void loadBgm( unsigned int snd, const char *file )
 	{
@@ -321,6 +338,7 @@ public:
 		CocosDenshion::SimpleAudioEngine::getInstance()->stopBackgroundMusic();
 	}
 
+
 	virtual void loadSe( unsigned int snd, const char *file )
 	{
 		if ( soundmax <= snd )
@@ -332,7 +350,7 @@ public:
 			releaseSe( snd );
 		}
 		se[ snd ] = ensureSoundFileName( file );
-		CocosDenshion::SimpleAudioEngine::getInstance()->preloadEffect( bgm[ snd ] );
+		CocosDenshion::SimpleAudioEngine::getInstance()->preloadEffect( se[ snd ] );
 	}
 
 	virtual void releaseSe( unsigned int snd )
@@ -352,7 +370,7 @@ public:
 		{
 			return;
 		}
-		seid[ snd ] = CocosDenshion::SimpleAudioEngine::getInstance()->playEffect( se[ snd ], loop );
+		seid[ snd ] = CocosDenshion::SimpleAudioEngine::getInstance()->playEffect( se[ snd ], loop, 1, 0, sevol );
 	}
 
 	virtual void stopSe( unsigned int snd )
@@ -422,6 +440,16 @@ public:
 		}
 	}
 
+	virtual void setAlphaF( float a )
+	{
+		alpha = (unsigned char)(255 * a);
+	}
+
+	virtual void setAlpha( unsigned char a = 255 )
+	{
+		alpha = a;
+	}
+
 private:
 	virtual Sprite * prepareTexture( int tex, int rx, int ry, int w, int h )
 	{
@@ -429,6 +457,10 @@ private:
 		rect.setRect( rx, ry, w, h );
 		Sprite *sprite = Sprite::createWithTexture( sprites[ tex ]->getTexture() );
 		sprite->setTextureRect( rect );
+		if ( alpha < 255 )
+		{
+			sprite->setOpacity( alpha );
+		}
 		return sprite;
 	}
 public:
@@ -462,8 +494,9 @@ public:
 			return;
 		}
 		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
+		//sprite->setColor( &color );
 		sprite->setScale( scale );
-		sprite->setPosition( dx - w * scale / 2, dy - h * scale / 2 );
+		sprite->setPosition( dx + w * scale / 2, dy + h * scale / 2 );
 		sprites[ tex ]->addChild( sprite );
 	}
 
