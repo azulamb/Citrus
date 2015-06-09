@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.6"
+#define CITRUS_VER "0.0.7"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -545,6 +545,84 @@ public:
 	virtual void update( float delta )
 	{
 		citrus->loop();
+	}
+};
+
+class  CitrusApp : private Application
+{
+public:
+	CitrusApp()
+	{
+		CitrusInit();
+	}
+
+	virtual ~CitrusApp()
+	{
+		CitrusTerm();
+	}
+
+	virtual class GameView * init() = 0;
+
+	virtual void initGLContextAttrs()
+	{
+		GLContextAttrs glContextAttrs = { 8, 8, 8, 8, 24, 8 };
+
+		GLView::setGLContextAttrs( glContextAttrs );
+	}
+
+	/**
+	@brief    Implement Director and Scene init code here.
+	@return true    Initialize success, app continue.
+	@return false   Initialize failed, app terminate.
+	*/
+	virtual bool applicationDidFinishLaunching()
+	{
+		// initialize director
+		auto director = Director::getInstance();
+		auto glview = director->getOpenGLView();
+		if ( !glview )
+		{
+			glview = GLViewImpl::create( "My Game" );
+			director->setOpenGLView( glview );
+		}
+
+#ifdef _DEBUG
+		// turn on display FPS
+		director->setDisplayStats( true );
+#endif
+
+		// set FPS. the default value is 1.0/60 if you don't call this
+		director->setAnimationInterval( 1.0 / 30 );
+
+		GameView *gv = init();
+
+		// create a scene. it's an autorelease object
+		auto scene = citrus->createScene( gv );
+
+		// run
+		director->runWithScene( scene );
+
+		return true;
+	}
+
+	/**
+	@brief  The function be called when the application enter background
+	@param  the pointer of the application
+	*/
+	virtual void applicationDidEnterBackground()
+	{
+		Director::getInstance()->stopAnimation();
+		citrus->pauseSound();
+	}
+
+	/**
+	@brief  The function be called when the application enter foreground
+	@param  the pointer of the application
+	*/
+	virtual void applicationWillEnterForeground()
+	{
+		Director::getInstance()->startAnimation();
+		citrus->resumeSound();
 	}
 };
 

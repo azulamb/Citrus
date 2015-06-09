@@ -16,61 +16,37 @@ CocosとMikanのいいとこ取りしたい。
 ## 使い方
 
 * ClassesにCitrus.hをコピー
-* AppDelegate.cppをちょっと改造
+* AppDelegate.h、cppをちょっと改造
 
-```c:AppDelegate.cpp
-...
+```c:AppDelegate.h
+#ifndef  _APP_DELEGATE_H_
+#define  _APP_DELEGATE_H_
 
 #include "Citrus.h"
+
+class  AppDelegate : private CitrusApp
+{
+public:
+	virtual class GameView * init();
+};
+
+#endif // _APP_DELEGATE_H_
+```
+
+```c:AppDelegate.cpp
+#include "AppDelegate.h"
+#include "HelloWorldScene.h"
+
 CitrusObject;
 
-AppDelegate::AppDelegate()　{
-　　　　CitrusInit();
+class GameView * AppDelegate::init() {
+	return new HelloCitrus();
 }
-
-AppDelegate::~AppDelegate()　{
-　　　　CitrusTerm();
-}
-
-...
-
-bool AppDelegate::applicationDidFinishLaunching() {
-
-    ...
-
-    // create a scene and GameView for Citrus.
-	auto scene = citrus->createScene( new GameView() );
-
-    // run
-    director->runWithScene(scene);
-
-    ...
-}
-
-... 
-
-void AppDelegate::applicationDidEnterBackground() {
-    Director::getInstance()->stopAnimation();
-
-    ...
-
-	citrus->pauseSound();
-}
-
-void AppDelegate::applicationWillEnterForeground() {
-    Director::getInstance()->startAnimation();
-
-    ...
-
-	citrus->resumeSound();
-}
-
-...
 ````
 
 後はGameViewクラスを継承して使えば使えます。
 
-````c:sample.h
+```c:HelloWorldScene.h
 class HelloCitrus:public GameView
 {
 public:
@@ -87,7 +63,7 @@ public:
 		return true;
 	}
 };
-````
+```
 
 MainLoopは毎フレーム呼ばれ、CocosのSpriteなども普通に使えます。
 
@@ -112,7 +88,7 @@ virtual void UserInit()
 
 もしAndroidではogg以外再生しない場合は次のようにします。
 
-````json:proj.android/build-cfg.json
+```json:proj.android/build-cfg.json
 {
     "ndk_module_path" :[
         "../cocos2d",
@@ -129,4 +105,4 @@ virtual void UserInit()
         }
     ]
 }
-````
+```
