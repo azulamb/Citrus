@@ -1,10 +1,14 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.7"
+#define CITRUS_VER "0.0.8"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
+
+#ifndef CITRUS_VIEW_NAME
+#define CITRUS_VIEW_NAME "Citrus Game"
+#endif
 
 #define CitrusObject class Citrus *citrus;
 #define CitrusInit() { citrus = new Citrus(); }
@@ -31,6 +35,7 @@ class CitrusInput
 {
 protected:
 	Scene *scene;
+	int h;
 public:
 	CitrusInput()
 	{
@@ -40,6 +45,10 @@ public:
 	virtual void setScene( Scene *scene )
 	{
 		this->scene = scene;
+	}
+	virtual void setScreenSize( int w,int h )
+	{
+		this->h = h;
 	}
 	virtual void update(){}
 	virtual int getX( int n = 0 )
@@ -89,14 +98,14 @@ public:
 	{
 		buf = true;
 		x = touch->getLocationInView().x;
-		y = touch->getLocationInView().y;
+		y = h - touch->getLocationInView().y;
 		return true;
 	}
 
 	virtual void onTouchMoved( Touch *touch, Event *event )
 	{
 		x = touch->getLocationInView().x;
-		y = touch->getLocationInView().y;
+		y = h - touch->getLocationInView().y;
 	}
 
 	virtual void onTouchEnded( Touch *touch, Event *event )
@@ -245,7 +254,8 @@ public:
 	{
 		Director *director = Director::getInstance();
 		GLView *glview = director->getOpenGLView();
-		glview->setDesignResolutionSize( width, height, kResolutionShowAll );
+		glview->setDesignResolutionSize( width, height, ResolutionPolicy::SHOW_ALL );//kResolutionShowAll );
+		input->setScreenSize( width, height );
 	}
 
 	// Inout
@@ -582,7 +592,7 @@ public:
 		auto glview = director->getOpenGLView();
 		if ( !glview )
 		{
-			glview = GLViewImpl::create( "My Game" );
+			glview = GLViewImpl::create( CITRUS_VIEW_NAME );
 			director->setOpenGLView( glview );
 		}
 
@@ -593,6 +603,8 @@ public:
 
 		// set FPS. the default value is 1.0/60 if you don't call this
 		director->setAnimationInterval( 1.0 / 30 );
+		Size ssize = glview->getFrameSize();
+		citrus->setScreenSize( ssize.width, ssize.height );
 
 		GameView *gv = init();
 
