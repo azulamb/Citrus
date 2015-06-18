@@ -58,7 +58,6 @@ public:
 	{
 		citrus->clear();
 		citrus->drawTexture( 0, 0, 0, 50, 50, 10, 10 );
-
 		citrus->drawTexture( 0, 0, 0, 50, 50, 100, 100 );
 		return true;
 	}
@@ -88,7 +87,7 @@ virtual void UserInit()
 * proj.android/build-cfg.json
     * copy_resourcesにexcludeの設定を追加する。
 
-もしAndroidではogg以外再生しない場合は次のようにします。
+もしAndroidでogg以外再生しない場合は次のようにします。
 
 ```json:proj.android/build-cfg.json
 {
