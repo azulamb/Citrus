@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.8"
+#define CITRUS_VER "0.0.9"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -507,6 +507,18 @@ public:
 		//sprite->setColor( &color );
 		sprite->setScale( scale );
 		sprite->setPosition( dx + w * scale / 2, dy + h * scale / 2 );
+		sprites[ tex ]->addChild( sprite );
+	}
+
+	virtual void drawTextureScaling( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float dw, float dh )
+	{
+		if ( texmax <= tex || sprites[ tex ] == NULL )
+		{
+			return;
+		}
+		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
+		sprite->setScale( dw / w, dh / h );
+		sprite->setPosition( dx + (int)(dw / 2), dy + (int)(dh / 2) );
 		sprites[ tex ]->addChild( sprite );
 	}
 
