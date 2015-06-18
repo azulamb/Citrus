@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.0.9"
+#define CITRUS_VER "0.1.0"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -151,6 +151,10 @@ public:
 		max = 1;
 		reset();
 		sprite = (Sprite **)calloc( max, sizeof( Sprite * ) );
+	}
+	virtual ~SpriteList()
+	{
+		free( sprite );
 	}
 	virtual void reset()
 	{
