@@ -140,12 +140,138 @@ public:
 	}
 };
 
+class SpriteList
+{
+private:
+	int now, max;
+	Sprite **sprite;
+public:
+	SpriteList()
+	{
+		max = 1;
+		reset();
+		sprite = (Sprite **)calloc( max, sizeof( Sprite * ) );
+	}
+	virtual void reset()
+	{
+		now = 0;
+	}
+	virtual void cut( SpriteBatchNode *batch )
+	{
+		for ( ; now < max; ++now)
+		{
+			if ( sprite[ now ] )
+			{
+				batch->removeChild( sprite[ now ], true );
+				sprite[ now ] = NULL;
+			}
+		}
+	}
+	virtual Sprite *get( SpriteBatchNode *batch )
+	{
+		if ( max <= now || sprite[ now ] == NULL)
+		{
+			if (max <= now )
+			{
+				++max;
+				sprite = (Sprite **)realloc( sprite, max * sizeof( Sprite * ) );
+			}
+			sprite[ now ] = Sprite::createWithTexture( batch->getTexture() );
+			batch->addChild( sprite[ now ] );
+		}
+		return sprite[ now++ ];
+	}
+};
+
+class CitrusTexture
+{
+private:
+	SpriteBatchNode *batch;
+	SpriteList list;
+	int alpha;
+public:
+	CitrusTexture()
+	{
+		batch = NULL;
+	}
+	virtual void createTexture( Scene *scene, unsigned int tex, const char *file )
+	{
+		batch = SpriteBatchNode::create( file );
+		batch->getTexture()->setAliasTexParameters();
+		scene->addChild( batch );
+	}
+private:
+	virtual Sprite * prepareTexture( int rx, int ry, int w, int h )
+	{
+		Rect rect;
+		rect.setRect( rx, ry, w, h );
+		Sprite *sprite = list.get( batch );//Sprite::createWithTexture( batch->getTexture() );
+		sprite->setTextureRect( rect );
+		if ( alpha < 255 )
+		{
+			sprite->setOpacity( alpha );
+		}
+		return sprite;
+	}
+public:
+	virtual void releaseTexture( Scene *scene, unsigned int tex )
+	{
+		scene->removeChild( batch );
+	}
+
+	virtual void clear()
+	{
+		//batch->removeAllChildren();
+		list.reset();
+	}
+
+	virtual void after()
+	{
+		list.cut( batch );
+	}
+
+	virtual void drawTexture( int rx, int ry, int w, int h, float dx, float dy )
+	{
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
+		sprite->setPosition( dx + w / 2, dy + h / 2 );
+		//sprite->setAnchorPoint();
+	}
+
+	virtual void drawTextureC( int rx, int ry, int w, int h, float dx, float dy )
+	{
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
+		sprite->setPosition( dx, dy );
+	}
+
+	virtual void drawTextureScaling( int rx, int ry, int w, int h, float dx, float dy, float scale )
+	{
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
+		//sprite->setColor( &color );
+		sprite->setScale( scale );
+		sprite->setPosition( dx + w * scale / 2, dy + h * scale / 2 );
+	}
+
+	virtual void drawTextureScaling( int rx, int ry, int w, int h, float dx, float dy, float dw, float dh )
+	{
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
+		sprite->setScale( dw / w, dh / h );
+		sprite->setPosition( dx + (int)( dw / 2 ), dy + (int)( dh / 2 ) );
+	}
+
+	virtual void drawTextureScalingC( int rx, int ry, int w, int h, float dx, float dy, float scale )
+	{
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
+		sprite->setScale( scale );
+		sprite->setPosition( dx, dy );
+	}
+};
+
 class Citrus
 {
 private:
 	Scene *scene;
 	class CitrusGameView *now, *next;
-	SpriteBatchNode **sprites;
+	CitrusTexture **texs;
 	unsigned int texmax;
 	class CitrusInput *input;
 	unsigned int soundmax;
@@ -162,7 +288,7 @@ public:
 		next = NULL;
 		scene = NULL;
 		texmax = 4;
-		sprites = (SpriteBatchNode **)calloc( texmax, sizeof( SpriteBatchNode * ) );
+		texs = (CitrusTexture **)calloc( texmax, sizeof( CitrusTexture * ) );
 		input = new CitrusInputTap();
 		soundmax = 5;
 		bgm = (char**)calloc( soundmax, sizeof( char* ) );
@@ -175,7 +301,7 @@ public:
 
 	virtual ~Citrus()
 	{
-		free( sprites );
+		free( texs );
 		for ( ; 0 < soundmax; --soundmax )
 		{
 			if ( bgm[ soundmax - 1 ] )
@@ -236,6 +362,7 @@ public:
 			return false;
 		}
 
+		after();
 		input->update();
 
 		return true;
@@ -406,10 +533,10 @@ public:
 
 	virtual void resizeTexture( unsigned int max )
 	{
-		sprites = (SpriteBatchNode **)realloc( sprites, sizeof( SpriteBatchNode * ) * max );
+		texs = (CitrusTexture **)realloc( texs, sizeof( CitrusTexture * ) * max );
 		for ( ; texmax < max; ++texmax )
 		{
-			sprites[ texmax ] = NULL;
+			texs[ texmax ] = NULL;
 		}
 	}
 
@@ -419,13 +546,12 @@ public:
 		{
 			return;
 		}
-		if ( sprites[ tex ] )
+		if ( texs[ tex ] )
 		{
 			releaseTexture( tex );
 		}
-		sprites[ tex ] = SpriteBatchNode::create( file );
-		sprites[ tex ]->getTexture()->setAliasTexParameters();
-		scene->addChild( sprites[ tex ] );
+		texs[ tex ] = new CitrusTexture();
+		texs[ tex ]->createTexture( scene, tex, file );
 	}
 
 	virtual void releaseTexture( unsigned int tex )
@@ -434,18 +560,29 @@ public:
 		{
 			return;
 		}
-		sprites[ tex ] = NULL;
-		scene->removeChild( sprites[ tex ] );
-		sprites[ tex ] = NULL;
+		texs[ tex ]->releaseTexture( scene, tex );
+		delete( texs[ tex ] );
+		texs[ tex ] = NULL;
 	}
 
 	virtual void clear()
 	{
 		for ( unsigned int i = 0; i < texmax; ++i )
 		{
-			if ( sprites[ i ] )
+			if ( texs[ i ] )
 			{
-				sprites[ i ]->removeAllChildren();
+				texs[ i ]->clear();
+			}
+		}
+	}
+
+	virtual void after()
+	{
+		for ( unsigned int i = 0; i < texmax; ++i )
+		{
+			if ( texs[ i ] )
+			{
+				texs[ i ]->after();
 			}
 		}
 	}
@@ -460,78 +597,51 @@ public:
 		alpha = a;
 	}
 
-private:
-	virtual Sprite * prepareTexture( int tex, int rx, int ry, int w, int h )
-	{
-		Rect rect;
-		rect.setRect( rx, ry, w, h );
-		Sprite *sprite = Sprite::createWithTexture( sprites[ tex ]->getTexture() );
-		sprite->setTextureRect( rect );
-		if ( alpha < 255 )
-		{
-			sprite->setOpacity( alpha );
-		}
-		return sprite;
-	}
+
 public:
 	virtual void drawTexture( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
 	{
-		if ( texmax <= tex || sprites[ tex ] == NULL )
+		if ( texmax <= tex || texs[ tex ] == NULL )
 		{
 			return;
 		}
-		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
-		sprite->setPosition( dx + w / 2, dy + h / 2 );
-		//sprite->setAnchorPoint();
-		sprites[ tex ]->addChild( sprite );
+		texs[ tex ]->drawTexture( rx, ry, w, h, dx, dy );
 	}
 
 	virtual void drawTextureC( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
 	{
-		if ( texmax <= tex || sprites[ tex ] == NULL )
+		if ( texmax <= tex || texs[ tex ] == NULL )
 		{
 			return;
 		}
-		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
-		sprite->setPosition( dx, dy );
-		sprites[ tex ]->addChild( sprite );
+		texs[ tex ]->drawTextureC( rx, ry, w, h, dx, dy );
 	}
 
 	virtual void drawTextureScaling( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float scale )
 	{
-		if ( texmax <= tex || sprites[ tex ] == NULL )
+		if ( texmax <= tex || texs[ tex ] == NULL )
 		{
 			return;
 		}
-		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
-		//sprite->setColor( &color );
-		sprite->setScale( scale );
-		sprite->setPosition( dx + w * scale / 2, dy + h * scale / 2 );
-		sprites[ tex ]->addChild( sprite );
+		texs[ tex ]->drawTextureScaling( rx, ry, w, h, dx, dy, scale );
 	}
 
 	virtual void drawTextureScaling( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float dw, float dh )
 	{
-		if ( texmax <= tex || sprites[ tex ] == NULL )
+		if ( texmax <= tex || texs[ tex ] == NULL )
 		{
 			return;
 		}
-		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
-		sprite->setScale( dw / w, dh / h );
-		sprite->setPosition( dx + (int)(dw / 2), dy + (int)(dh / 2) );
-		sprites[ tex ]->addChild( sprite );
+		texs[ tex ]->drawTextureScaling( rx, ry, w, h, dx, dy, dw, dh );
 	}
 
 	virtual void drawTextureScalingC( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float scale )
 	{
-		if ( texmax <= tex || sprites[ tex ] == NULL )
+		if ( texmax <= tex || texs[ tex ] == NULL )
 		{
 			return;
 		}
-		Sprite *sprite = prepareTexture( tex, rx, ry, w, h );
-		sprite->setScale( scale );
-		sprite->setPosition( dx, dy );
-		sprites[ tex ]->addChild( sprite );
+		texs[ tex ]->drawTextureScalingC( rx, ry, w, h, dx, dy, scale );
 	}
 };
 
