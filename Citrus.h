@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.1.0"
+#define CITRUS_VER "0.1.1"
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -192,11 +192,12 @@ class CitrusTexture
 private:
 	SpriteBatchNode *batch;
 	SpriteList list;
-	int alpha;
+	GLubyte a;
 public:
 	CitrusTexture()
 	{
 		batch = NULL;
+		setAlpha();
 	}
 	virtual void createTexture( Scene *scene, unsigned int tex, const char *file )
 	{
@@ -211,9 +212,9 @@ private:
 		rect.setRect( rx, ry, w, h );
 		Sprite *sprite = list.get( batch );//Sprite::createWithTexture( batch->getTexture() );
 		sprite->setTextureRect( rect );
-		if ( alpha < 255 )
+		if ( a < 255 )
 		{
-			sprite->setOpacity( alpha );
+			sprite->setOpacity( a );
 		}
 		return sprite;
 	}
@@ -232,6 +233,11 @@ public:
 	virtual void after()
 	{
 		list.cut( batch );
+	}
+
+	virtual void setAlpha( GLbyte a = 0xFF )
+	{
+		this->a = a;
 	}
 
 	virtual void drawTexture( int rx, int ry, int w, int h, float dx, float dy )
@@ -283,7 +289,6 @@ private:
 	char **se;
 	float sevol;
 	int *seid;
-	unsigned char alpha;
 
 public:
 	Citrus()
@@ -298,7 +303,6 @@ public:
 		bgm = (char**)calloc( soundmax, sizeof( char* ) );
 		se = (char**)calloc( soundmax, sizeof( char* ) );
 		seid = (int*)calloc( soundmax, sizeof( int ) );
-		alpha = 255;
 		sevol = 1;
 		CocosDenshion::SimpleAudioEngine::getInstance()->setBackgroundMusicVolume( 1.0f );
 	}
@@ -580,6 +584,7 @@ public:
 		}
 	}
 
+private:
 	virtual void after()
 	{
 		for ( unsigned int i = 0; i < texmax; ++i )
@@ -590,15 +595,24 @@ public:
 			}
 		}
 	}
+public:
 
-	virtual void setAlphaF( float a )
+	virtual void setAlphaF( unsigned int tex, float a )
 	{
-		alpha = (unsigned char)(255 * a);
+		if ( texmax <= tex || texs[ tex ] == NULL )
+		{
+			return;
+		}
+		texs[ tex ]->setAlpha( (unsigned char)( 255 * a ) );
 	}
 
-	virtual void setAlpha( unsigned char a = 255 )
+	virtual void setAlpha( unsigned int tex, unsigned char a = 255 )
 	{
-		alpha = a;
+		if ( texmax <= tex || texs[ tex ] == NULL )
+		{
+			return;
+		}
+		texs[ tex ]->setAlpha( a );
 	}
 
 
