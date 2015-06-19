@@ -1,7 +1,10 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.1.1"
+#define CITRUS_VER "0.1.2"
+
+// I want to delete.
+#define DISABLE_REUSE_SPRITE
 
 #include "cocos2d.h"
 #include <SimpleAudioEngine.h>
@@ -149,8 +152,8 @@ public:
 	SpriteList()
 	{
 		max = 1;
-		reset();
 		sprite = (Sprite **)calloc( max, sizeof( Sprite * ) );
+		reset();
 	}
 	virtual ~SpriteList()
 	{
@@ -158,16 +161,30 @@ public:
 	}
 	virtual void reset()
 	{
+		Rect rect;
+		rect.setRect( 0, 0, 0, 0 );
+		for ( now = 0 ; now < max; ++now )
+		{
+			if ( sprite[ now ] )
+			{
+				sprite[ now ]->setPosition( 0, 0 );
+				sprite[ now ]->setTextureRect( rect );
+			}
+		}
 		now = 0;
 	}
 	virtual void cut( SpriteBatchNode *batch )
 	{
-		for ( ; now < max; ++now)
+		Rect rect;
+		rect.setRect( 0, 0, 0, 0 );
+		for ( ; now < max; ++now )
 		{
 			if ( sprite[ now ] )
 			{
-				batch->removeChild( sprite[ now ], true );
-				sprite[ now ] = NULL;
+				sprite[ now ]->setPosition( 0, 0 );
+				sprite[ now ]->setTextureRect( rect );
+				//batch->removeChild( sprite[ now ], true );
+				//sprite[ now ] = NULL;
 			}
 		}
 	}
@@ -210,7 +227,13 @@ private:
 	{
 		Rect rect;
 		rect.setRect( rx, ry, w, h );
-		Sprite *sprite = list.get( batch );//Sprite::createWithTexture( batch->getTexture() );
+		Sprite *sprite;
+#ifdef DISABLE_REUSE_SPRITE
+		sprite = Sprite::createWithTexture( batch->getTexture() );
+		batch->addChild( sprite );
+#else
+		sprite = list.get( batch );
+#endif
 		sprite->setTextureRect( rect );
 		if ( a < 255 )
 		{
@@ -226,8 +249,11 @@ public:
 
 	virtual void clear()
 	{
-		//batch->removeAllChildren();
+#ifdef DISABLE_REUSE_SPRITE
+		batch->removeAllChildren();
+#else
 		list.reset();
+#endif
 	}
 
 	virtual void after()
@@ -243,7 +269,7 @@ public:
 	virtual void drawTexture( int rx, int ry, int w, int h, float dx, float dy )
 	{
 		Sprite *sprite = prepareTexture( rx, ry, w, h );
-		sprite->setPosition( dx + w / 2, dy + h / 2 );
+		sprite->setPosition( dx + (int)( w / 2 ), dy + (int)( h / 2 ) );
 		//sprite->setAnchorPoint();
 	}
 
@@ -258,7 +284,7 @@ public:
 		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		//sprite->setColor( &color );
 		sprite->setScale( scale );
-		sprite->setPosition( dx + w * scale / 2, dy + h * scale / 2 );
+		sprite->setPosition( dx + (int)( w * scale / 2 ), dy + (int)( h * scale / 2 ) );
 	}
 
 	virtual void drawTextureScaling( int rx, int ry, int w, int h, float dx, float dy, float dw, float dh )
@@ -615,8 +641,6 @@ public:
 		texs[ tex ]->setAlpha( a );
 	}
 
-
-public:
 	virtual void drawTexture( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy )
 	{
 		if ( texmax <= tex || texs[ tex ] == NULL )
