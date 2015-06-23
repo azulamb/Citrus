@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.1.2"
+#define CITRUS_VER "0.1.3"
 
 // I want to delete.
 #define DISABLE_REUSE_SPRITE
@@ -269,8 +269,8 @@ public:
 	virtual void drawTexture( int rx, int ry, int w, int h, float dx, float dy )
 	{
 		Sprite *sprite = prepareTexture( rx, ry, w, h );
-		sprite->setPosition( dx + (int)( w / 2 ), dy + (int)( h / 2 ) );
-		//sprite->setAnchorPoint();
+		sprite->setPosition( dx, dy );
+		sprite->setAnchorPoint( ccp( 0, 0 ) );
 	}
 
 	virtual void drawTextureC( int rx, int ry, int w, int h, float dx, float dy )
@@ -284,14 +284,16 @@ public:
 		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		//sprite->setColor( &color );
 		sprite->setScale( scale );
-		sprite->setPosition( dx + (int)( w * scale / 2 ), dy + (int)( h * scale / 2 ) );
+		sprite->setPosition( dx, dy );
+		sprite->setAnchorPoint( ccp( 0, 0 ) );
 	}
 
 	virtual void drawTextureScaling( int rx, int ry, int w, int h, float dx, float dy, float dw, float dh )
 	{
 		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		sprite->setScale( dw / w, dh / h );
-		sprite->setPosition( dx + (int)( dw / 2 ), dy + (int)( dh / 2 ) );
+		sprite->setPosition( dx, dy );
+		sprite->setAnchorPoint( ccp( 0, 0 ) );
 	}
 
 	virtual void drawTextureScalingC( int rx, int ry, int w, int h, float dx, float dy, float scale )
