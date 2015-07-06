@@ -1,7 +1,7 @@
 #ifndef __CITRUS_HEADER
 #define __CITRUS_HEADER
 
-#define CITRUS_VER "0.1.3"
+#define CITRUS_VER "0.1.4"
 
 // I want to delete.
 #define DISABLE_REUSE_SPRITE
@@ -19,7 +19,9 @@
 
 extern class Citrus *citrus;
 
-class CitrusGameView : public cocos2d::Layer
+USING_NS_CC;
+
+class CitrusGameView : public Layer
 {
 public:
 	CitrusGameView(){
@@ -35,7 +37,7 @@ public:
 class CitrusInput
 {
 protected:
-	cocos2d::Scene *scene;
+	Scene *scene;
 	int h;
 public:
 	CitrusInput()
@@ -43,7 +45,7 @@ public:
 		scene = NULL;
 		setScene( NULL );
 	}
-	virtual void setScene( cocos2d::Scene *scene )
+	virtual void setScene( Scene *scene )
 	{
 		this->scene = scene;
 	}
@@ -79,14 +81,14 @@ public:
 		x = y = 0;
 	}
 
-	virtual void setScene( cocos2d::Scene *scene )
+	virtual void setScene( Scene *scene )
 	{
 		if ( scene == NULL )
 		{
 			this->scene = scene;
 			return;
 		}
-		auto listener = cocos2d::EventListenerTouchOneByOne::create();
+		auto listener = EventListenerTouchOneByOne::create();
 
 		listener->onTouchBegan = CC_CALLBACK_2( CitrusInputTap::onTouchBegan, this );
 		listener->onTouchMoved = CC_CALLBACK_2( CitrusInputTap::onTouchMoved, this );
@@ -95,7 +97,7 @@ public:
 		scene->getEventDispatcher()->addEventListenerWithSceneGraphPriority( listener, scene );
 	}
 
-	virtual bool onTouchBegan( cocos2d::Touch *touch, cocos2d::Event *event )
+	virtual bool onTouchBegan( Touch *touch, Event *event )
 	{
 		buf = true;
 		x = touch->getLocationInView().x;
@@ -103,13 +105,13 @@ public:
 		return true;
 	}
 
-	virtual void onTouchMoved( cocos2d::Touch *touch, cocos2d::Event *event )
+	virtual void onTouchMoved( Touch *touch, Event *event )
 	{
 		x = touch->getLocationInView().x;
 		y = h - touch->getLocationInView().y;
 	}
 
-	virtual void onTouchEnded( cocos2d::Touch *touch, cocos2d::Event *event )
+	virtual void onTouchEnded( Touch *touch, Event *event )
 	{
 		buf = false;
 	}
@@ -145,12 +147,12 @@ class SpriteList
 {
 private:
 	int now, max;
-	cocos2d::Sprite **sprite;
+	Sprite **sprite;
 public:
 	SpriteList()
 	{
 		max = 1;
-		sprite = ( cocos2d::Sprite ** )calloc( max, sizeof( cocos2d::Sprite * ) );
+		sprite = (Sprite **)calloc( max, sizeof( Sprite * ) );
 		reset();
 	}
 	virtual ~SpriteList()
@@ -159,7 +161,7 @@ public:
 	}
 	virtual void reset()
 	{
-		cocos2d::Rect rect;
+		Rect rect;
 		rect.setRect( 0, 0, 0, 0 );
 		for ( now = 0 ; now < max; ++now )
 		{
@@ -171,9 +173,9 @@ public:
 		}
 		now = 0;
 	}
-	virtual void cut( cocos2d::SpriteBatchNode *batch )
+	virtual void cut( SpriteBatchNode *batch )
 	{
-		cocos2d::Rect rect;
+		Rect rect;
 		rect.setRect( 0, 0, 0, 0 );
 		for ( ; now < max; ++now )
 		{
@@ -186,16 +188,16 @@ public:
 			}
 		}
 	}
-	virtual cocos2d::Sprite *get( cocos2d::SpriteBatchNode *batch )
+	virtual Sprite *get( SpriteBatchNode *batch )
 	{
 		if ( max <= now || sprite[ now ] == NULL)
 		{
 			if (max <= now )
 			{
 				++max;
-				sprite = ( cocos2d::Sprite ** )realloc( sprite, max * sizeof( cocos2d::Sprite * ) );
+				sprite = (Sprite **)realloc( sprite, max * sizeof( Sprite * ) );
 			}
-			sprite[ now ] = cocos2d::Sprite::createWithTexture( batch->getTexture() );
+			sprite[ now ] = Sprite::createWithTexture( batch->getTexture() );
 			batch->addChild( sprite[ now ] );
 		}
 		return sprite[ now++ ];
@@ -205,7 +207,7 @@ public:
 class CitrusTexture
 {
 private:
-	cocos2d::SpriteBatchNode *batch;
+	SpriteBatchNode *batch;
 	SpriteList list;
 	GLubyte a;
 public:
@@ -214,20 +216,20 @@ public:
 		batch = NULL;
 		setAlpha();
 	}
-	virtual void createTexture( cocos2d::Scene *scene, unsigned int tex, const char *file )
+	virtual void createTexture( Scene *scene, unsigned int tex, const char *file )
 	{
-		batch = cocos2d::SpriteBatchNode::create( file );
+		batch = SpriteBatchNode::create( file );
 		batch->getTexture()->setAliasTexParameters();
 		scene->addChild( batch );
 	}
 private:
-	virtual cocos2d::Sprite * prepareTexture( int rx, int ry, int w, int h )
+	virtual Sprite * prepareTexture( int rx, int ry, int w, int h )
 	{
-		cocos2d::Rect rect;
+		Rect rect;
 		rect.setRect( rx, ry, w, h );
-		cocos2d::Sprite *sprite;
+		Sprite *sprite;
 #ifdef DISABLE_REUSE_SPRITE
-		sprite = cocos2d::Sprite::createWithTexture( batch->getTexture() );
+		sprite = Sprite::createWithTexture( batch->getTexture() );
 		batch->addChild( sprite );
 #else
 		sprite = list.get( batch );
@@ -240,7 +242,7 @@ private:
 		return sprite;
 	}
 public:
-	virtual void releaseTexture( cocos2d::Scene *scene, unsigned int tex )
+	virtual void releaseTexture( Scene *scene, unsigned int tex )
 	{
 		scene->removeChild( batch );
 	}
@@ -266,48 +268,56 @@ public:
 
 	virtual void drawTexture( int rx, int ry, int w, int h, float dx, float dy )
 	{
-		cocos2d::Sprite *sprite = prepareTexture( rx, ry, w, h );
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		sprite->setPosition( dx, dy );
-		sprite->setAnchorPoint( cocos2d::Vec2( 0, 0 ) );
+		sprite->setAnchorPoint( ccp( 0, 0 ) );
 	}
 
 	virtual void drawTextureC( int rx, int ry, int w, int h, float dx, float dy )
 	{
-		cocos2d::Sprite *sprite = prepareTexture( rx, ry, w, h );
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		sprite->setPosition( dx, dy );
 	}
 
 	virtual void drawTextureScaling( int rx, int ry, int w, int h, float dx, float dy, float scale )
 	{
-		cocos2d::Sprite *sprite = prepareTexture( rx, ry, w, h );
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		//sprite->setColor( &color );
 		sprite->setScale( scale );
 		sprite->setPosition( dx, dy );
-		sprite->setAnchorPoint( cocos2d::Vec2( 0, 0 ) );
+		sprite->setAnchorPoint( ccp( 0, 0 ) );
 	}
 
 	virtual void drawTextureScaling( int rx, int ry, int w, int h, float dx, float dy, float dw, float dh )
 	{
-		cocos2d::Sprite *sprite = prepareTexture( rx, ry, w, h );
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		sprite->setScale( dw / w, dh / h );
 		sprite->setPosition( dx, dy );
-		sprite->setAnchorPoint( cocos2d::Vec2( 0, 0 ) );
+		sprite->setAnchorPoint( ccp( 0, 0 ) );
 	}
 
 	virtual void drawTextureScalingC( int rx, int ry, int w, int h, float dx, float dy, float scale )
 	{
-		cocos2d::Sprite *sprite = prepareTexture( rx, ry, w, h );
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
 		sprite->setScale( scale );
 		sprite->setPosition( dx, dy );
+	}
+
+	virtual void drawTextureRotateScaleC( int rx, int ry, int w, int h, float dx, float dy, float scale, float rad )
+	{
+		Sprite *sprite = prepareTexture( rx, ry, w, h );
+		sprite->setScale( scale );
+		sprite->setPosition( dx, dy );
+		sprite->setRotation( rad );
 	}
 };
 
 class Citrus
 {
 private:
-	cocos2d::Scene *scene;
+	Scene *scene;
 	class CitrusGameView *now, *next;
-	class CitrusTexture **texs;
+	CitrusTexture **texs;
 	unsigned int texmax;
 	class CitrusInput *input;
 	unsigned int soundmax;
@@ -352,16 +362,16 @@ public:
 		free( seid );
 	}
 
-	virtual void initInput( cocos2d::Scene *scene )
+	virtual void initInput( Scene *scene )
 	{
 		input->setScene( scene );
 	}
 
 	// System
 
-	virtual cocos2d::Scene * createScene( class CitrusGameView *gv )
+	virtual Scene * createScene( class CitrusGameView *gv )
 	{
-		setScene( cocos2d::Scene::create() );
+		setScene( Scene::create() );
 
 		now = gv;
 		scene->addChild( gv );
@@ -370,7 +380,7 @@ public:
 		return scene;
 	}
 
-	virtual void setScene( cocos2d::Scene *s )
+	virtual void setScene( Scene *s )
 	{
 		scene = s;
 		initInput( s );
@@ -413,9 +423,9 @@ public:
 
 	virtual void setScreenSize( int width, int height )
 	{
-		cocos2d::Director *director = cocos2d::Director::getInstance();
-		cocos2d::GLView *glview = director->getOpenGLView();
-		glview->setDesignResolutionSize( width, height, ResolutionPolicy::SHOW_ALL );
+		Director *director = Director::getInstance();
+		GLView *glview = director->getOpenGLView();
+		glview->setDesignResolutionSize( width, height, ResolutionPolicy::SHOW_ALL );//kResolutionShowAll );
 		input->setScreenSize( width, height );
 	}
 
@@ -685,6 +695,15 @@ public:
 		}
 		texs[ tex ]->drawTextureScalingC( rx, ry, w, h, dx, dy, scale );
 	}
+
+	virtual void drawTextureRotateScaleC( unsigned int tex, int rx, int ry, int w, int h, float dx, float dy, float scale, float rad )
+	{
+		if ( texmax <= tex || texs[ tex ] == NULL )
+		{
+			return;
+		}
+		texs[ tex ]->drawTextureRotateScaleC( rx, ry, w, h, dx, dy, scale, rad );
+	}
 };
 
 class GameView : public CitrusGameView{
@@ -696,19 +715,19 @@ public:
 	}
 	virtual bool init()
 	{
-		if ( !cocos2d::Layer::init() )
+		if ( !Layer::init() )
 		{
 			return false;
 		}
 
-		cocos2d::Size visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
-		cocos2d::Vec2 origin = cocos2d::Director::getInstance()->getVisibleOrigin();
+		Size visibleSize = Director::getInstance()->getVisibleSize();
+		Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
 		Layer::scheduleUpdate();
 		return true;
 	}
 
-	virtual void menuCloseCallback( cocos2d::Ref* pSender )
+	virtual void menuCloseCallback( Ref* pSender )
 	{
 		cocos2d::Director::getInstance()->end();
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
@@ -722,7 +741,7 @@ public:
 	}
 };
 
-class  CitrusApp : private cocos2d::Application
+class  CitrusApp : private Application
 {
 public:
 	CitrusApp()
@@ -741,7 +760,7 @@ public:
 	{
 		GLContextAttrs glContextAttrs = { 8, 8, 8, 8, 24, 8 };
 
-		cocos2d::GLView::setGLContextAttrs( glContextAttrs );
+		GLView::setGLContextAttrs( glContextAttrs );
 	}
 
 	/**
@@ -752,11 +771,11 @@ public:
 	virtual bool applicationDidFinishLaunching()
 	{
 		// initialize director
-		auto director = cocos2d::Director::getInstance();
+		auto director = Director::getInstance();
 		auto glview = director->getOpenGLView();
 		if ( !glview )
 		{
-			glview = cocos2d::GLViewImpl::create( CITRUS_VIEW_NAME );
+			glview = GLViewImpl::create( CITRUS_VIEW_NAME );
 			director->setOpenGLView( glview );
 		}
 
@@ -767,7 +786,7 @@ public:
 
 		// set FPS. the default value is 1.0/60 if you don't call this
 		director->setAnimationInterval( 1.0 / 30 );
-		cocos2d::Size ssize = glview->getFrameSize();
+		Size ssize = glview->getFrameSize();
 		citrus->setScreenSize( ssize.width, ssize.height );
 
 		GameView *gv = init();
@@ -787,7 +806,7 @@ public:
 	*/
 	virtual void applicationDidEnterBackground()
 	{
-		cocos2d::Director::getInstance()->stopAnimation();
+		Director::getInstance()->stopAnimation();
 		citrus->pauseSound();
 	}
 
@@ -797,7 +816,7 @@ public:
 	*/
 	virtual void applicationWillEnterForeground()
 	{
-		cocos2d::Director::getInstance()->startAnimation();
+		Director::getInstance()->startAnimation();
 		citrus->resumeSound();
 	}
 };
